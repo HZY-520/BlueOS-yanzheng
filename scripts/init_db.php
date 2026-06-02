@@ -12,5 +12,5 @@ $created = seed_admin($username, $password);
 
 echo "Database initialized at " . APP_DB_PATH . PHP_EOL;
 echo $created
-    ? "Admin created: {$username}" . PHP_EOL
+    ? "Super admin created: {$username}" . PHP_EOL
     : "Admin already exists: {$username}" . PHP_EOL;

@@ -37,9 +37,13 @@ CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    role TEXT NOT NULL DEFAULT 'merchant',
+    created_by INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT
 )
 SQL);
+    migrate_admin_schema($pdo);
 
     $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS cards (
@@ -58,6 +62,33 @@ SQL);
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_cards_group_name ON cards(group_name)');
 }
 
+function migrate_admin_schema(PDO $pdo): void
+{
+    $columns = [];
+    foreach ($pdo->query('PRAGMA table_info(admins)') as $column) {
+        $columns[(string) $column['name']] = true;
+    }
+
+    if (!isset($columns['role'])) {
+        $pdo->exec("ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT 'merchant'");
+    }
+    if (!isset($columns['created_by'])) {
+        $pdo->exec('ALTER TABLE admins ADD COLUMN created_by INTEGER');
+    }
+    if (!isset($columns['updated_at'])) {
+        $pdo->exec('ALTER TABLE admins ADD COLUMN updated_at TEXT');
+    }
+
+    $superCount = (int) $pdo->query("SELECT COUNT(*) FROM admins WHERE role = 'super'")->fetchColumn();
+    if ($superCount === 0) {
+        $firstAdminId = $pdo->query('SELECT id FROM admins ORDER BY id ASC LIMIT 1')->fetchColumn();
+        if ($firstAdminId !== false) {
+            $stmt = $pdo->prepare("UPDATE admins SET role = 'super', updated_at = :updated_at WHERE id = :id");
+            $stmt->execute([':updated_at' => gmdate('c'), ':id' => $firstAdminId]);
+        }
+    }
+}
+
 function seed_admin(string $username, string $password): bool
 {
     init_schema();
@@ -69,11 +100,14 @@ function seed_admin(string $username, string $password): bool
         return false;
     }
 
-    $stmt = $pdo->prepare('INSERT INTO admins (username, password_hash, created_at) VALUES (:username, :password_hash, :created_at)');
+    $now = gmdate('c');
+    $stmt = $pdo->prepare('INSERT INTO admins (username, password_hash, role, created_at, updated_at) VALUES (:username, :password_hash, :role, :created_at, :updated_at)');
     return $stmt->execute([
         ':username' => $username,
         ':password_hash' => password_hash($password, PASSWORD_DEFAULT),
-        ':created_at' => gmdate('c'),
+        ':role' => 'super',
+        ':created_at' => $now,
+        ':updated_at' => $now,
     ]);
 }
 

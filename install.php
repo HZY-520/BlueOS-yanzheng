@@ -21,7 +21,7 @@ header('Content-Type: text/html; charset=utf-8');
     <h1>BlueOS 激活系统安装完成</h1>
     <p class="ok">SQLite 数据表已初始化，数据库位置：<code>data/app.db</code></p>
     <?php if ($created): ?>
-        <p class="warn">默认管理员已创建：用户名 <code>admin</code>，密码 <code>admin123</code>。首次登录后请尽快修改或替换管理员密码。</p>
+        <p class="warn">默认超级管理员已创建：用户名 <code>admin</code>，密码 <code>admin123</code>。首次登录后请尽快修改或替换管理员密码。</p>
     <?php else: ?>
         <p>管理员账号已存在，本次未重复写入默认账号。</p>
     <?php endif; ?>
